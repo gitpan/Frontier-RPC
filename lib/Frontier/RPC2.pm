@@ -3,7 +3,7 @@
 # Frontier::RPC is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Id: RPC2.pm,v 1.12 1999/11/21 00:13:21 kmacleod Exp $
+# $Id: RPC2.pm,v 1.18 2002/08/02 18:35:21 ivan420 Exp $
 #
 
 # NOTE: see Storable for marshalling.
@@ -179,6 +179,10 @@ sub _item {
 	push @text, "<value><dateTime.iso8601>", $item->repr, "</dateTime.iso8601></value>\n";
     } elsif ($ref eq 'Frontier::RPC2::Base64') {
 	push @text, "<value><base64>", $item->repr, "</base64></value>\n";
+    } elsif ($ref =~ /=HASH\(/) {
+	push @text, $self->_hash($item);
+    } elsif ($ref =~ /=ARRAY\(/) {
+	push @text, $self->_array($item);
     } else {
 	die "can't convert \`$item' to XML\n";
     }
@@ -237,7 +241,8 @@ sub _scalar {
 sub decode {
     my $self = shift; my $string = shift;
 
-    $self->{'parser'} = new XML::Parser Style => ref($self);
+    $self->{'parser'} = XML::Parser->new( Style => ref($self),
+					  'use_objects' => $self->{'use_objects'} );
     return $self->{'parser'}->parsestring($string);
 }
 
@@ -250,20 +255,34 @@ sub base64 {
 
 sub boolean {
     my $self = shift;
-
-    return Frontier::RPC2::Boolean->new(@_);
+    my $elem = shift;
+    if($elem == 0 or $elem == 1) {
+        return Frontier::RPC2::Boolean->new($elem);
+    } else {
+        die "error in rendering RPC type \`$elem\' not a boolean\n";
+    }
 }
 
 sub double {
     my $self = shift;
-
-    return Frontier::RPC2::Double->new(@_);
+    my $elem = shift;
+    # this is from `perldata(1)'
+    if($elem =~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/) {
+        return Frontier::RPC2::Double->new($elem);
+    } else {
+        die "error in rendering RPC type \`$elem\' not a double\n";
+    } 
 }
 
 sub int {
     my $self = shift;
-
-    return Frontier::RPC2::Integer->new(@_);
+    my $elem = shift; 
+    # this is from `perldata(1)'
+    if($elem =~ /^[+-]?\d+$/) {
+        return Frontier::RPC2::Integer->new($elem);
+    } else {
+        die "error in rendering RPC type \`$elem\' not an int\n";
+    }
 }
 
 sub string {
@@ -284,135 +303,135 @@ sub date_time {
 ###
 
 sub die {
-    my $parser = shift; my $message = shift;
+    my $expat = shift; my $message = shift;
 
     die $message
-	. "at line " . $parser->current_line
-        . " column " . $parser->current_column . "\n";
+	. "at line " . $expat->current_line
+        . " column " . $expat->current_column . "\n";
 }
 
 sub init {
-    my $self = shift;
+    my $expat = shift;
 
-    $self->{'rpc_state'} = [];
-    $self->{'rpc_container'} = [ [] ];
-    $self->{'rpc_member_name'} = [];
-    $self->{'rpc_type'} = undef;
-    $self->{'rpc_args'} = undef;
+    $expat->{'rpc_state'} = [];
+    $expat->{'rpc_container'} = [ [] ];
+    $expat->{'rpc_member_name'} = [];
+    $expat->{'rpc_type'} = undef;
+    $expat->{'rpc_args'} = undef;
 }
 
 # FIXME this state machine wouldn't be necessary if we had a DTD.
 sub start {
-    my $self = shift; my $tag = shift;
+    my $expat = shift; my $tag = shift;
 
-    my $state = $self->{'rpc_state'}[-1];
+    my $state = $expat->{'rpc_state'}[-1];
 
     if (!defined $state) {
 	if ($tag eq 'methodCall') {
-	    $self->{'rpc_type'} = 'call';
-	    push @{ $self->{'rpc_state'} }, 'want_method_name';
+	    $expat->{'rpc_type'} = 'call';
+	    push @{ $expat->{'rpc_state'} }, 'want_method_name';
 	} elsif ($tag eq 'methodResponse') {
-	    push @{ $self->{'rpc_state'} }, 'method_response';
+	    push @{ $expat->{'rpc_state'} }, 'method_response';
 	} else {
-	    Frontier::RPC2::die($self, "unknown RPC type \`$tag'\n");
+	    Frontier::RPC2::die($expat, "unknown RPC type \`$tag'\n");
 	}
     } elsif ($state eq 'want_method_name') {
-	Frontier::RPC2::die($self, "wanted \`methodName' tag, got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`methodName' tag, got \`$tag'\n")
 	    if ($tag ne 'methodName');
-	push @{ $self->{'rpc_state'} }, 'method_name';
-	$self->{'rpc_text'} = "";
+	push @{ $expat->{'rpc_state'} }, 'method_name';
+	$expat->{'rpc_text'} = "";
     } elsif ($state eq 'method_response') {
 	if ($tag eq 'params') {
-	    $self->{'rpc_type'} = 'response';
-	    push @{ $self->{'rpc_state'} }, 'params';
+	    $expat->{'rpc_type'} = 'response';
+	    push @{ $expat->{'rpc_state'} }, 'params';
 	} elsif ($tag eq 'fault') {
-	    $self->{'rpc_type'} = 'fault';
-	    push @{ $self->{'rpc_state'} }, 'want_value';
+	    $expat->{'rpc_type'} = 'fault';
+	    push @{ $expat->{'rpc_state'} }, 'want_value';
 	}
     } elsif ($state eq 'want_params') {
-	Frontier::RPC2::die($self, "wanted \`params' tag, got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`params' tag, got \`$tag'\n")
 	    if ($tag ne 'params');
-	push @{ $self->{'rpc_state'} }, 'params';
+	push @{ $expat->{'rpc_state'} }, 'params';
     } elsif ($state eq 'params') {
-	Frontier::RPC2::die($self, "wanted \`param' tag, got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`param' tag, got \`$tag'\n")
 	    if ($tag ne 'param');
-	push @{ $self->{'rpc_state'} }, 'want_param_name_or_value';
+	push @{ $expat->{'rpc_state'} }, 'want_param_name_or_value';
     } elsif ($state eq 'want_param_name_or_value') {
 	if ($tag eq 'value') {
-	    $self->{'may_get_cdata'} = 1;
-	    $self->{'rpc_text'} = "";
-	    push @{ $self->{'rpc_state'} }, 'value';
+	    $expat->{'may_get_cdata'} = 1;
+	    $expat->{'rpc_text'} = "";
+	    push @{ $expat->{'rpc_state'} }, 'value';
 	} elsif ($tag eq 'name') {
-	    push @{ $self->{'rpc_state'} }, 'param_name';
+	    push @{ $expat->{'rpc_state'} }, 'param_name';
 	} else {	    
-	    Frontier::RPC2::die($self, "wanted \`value' or \`name' tag, got \`$tag'\n");
+	    Frontier::RPC2::die($expat, "wanted \`value' or \`name' tag, got \`$tag'\n");
 	}
     } elsif ($state eq 'param_name') {
-	Frontier::RPC2::die($self, "wanted parameter name data, got tag \`$tag'\n");
+	Frontier::RPC2::die($expat, "wanted parameter name data, got tag \`$tag'\n");
     } elsif ($state eq 'want_value') {
-	Frontier::RPC2::die($self, "wanted \`value' tag, got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`value' tag, got \`$tag'\n")
 	    if ($tag ne 'value');
-	$self->{'rpc_text'} = "";
-	$self->{'may_get_cdata'} = 1;
-	push @{ $self->{'rpc_state'} }, 'value';
+	$expat->{'rpc_text'} = "";
+	$expat->{'may_get_cdata'} = 1;
+	push @{ $expat->{'rpc_state'} }, 'value';
     } elsif ($state eq 'value') {
-	$self->{'may_get_cdata'} = 0;
+	$expat->{'may_get_cdata'} = 0;
 	if ($tag eq 'array') {
-	    push @{ $self->{'rpc_container'} }, [];
-	    push @{ $self->{'rpc_state'} }, 'want_data';
+	    push @{ $expat->{'rpc_container'} }, [];
+	    push @{ $expat->{'rpc_state'} }, 'want_data';
 	} elsif ($tag eq 'struct') {
-	    push @{ $self->{'rpc_container'} }, {};
-	    push @{ $self->{'rpc_member_name'} }, undef;
-	    push @{ $self->{'rpc_state'} }, 'struct';
+	    push @{ $expat->{'rpc_container'} }, {};
+	    push @{ $expat->{'rpc_member_name'} }, undef;
+	    push @{ $expat->{'rpc_state'} }, 'struct';
 	} elsif ($scalars{$tag}) {
-	    $self->{'rpc_text'} = "";
-	    push @{ $self->{'rpc_state'} }, 'cdata';
+	    $expat->{'rpc_text'} = "";
+	    push @{ $expat->{'rpc_state'} }, 'cdata';
 	} else {
-	    Frontier::RPC2::die($self, "wanted a data type, got \`$tag'\n");
+	    Frontier::RPC2::die($expat, "wanted a data type, got \`$tag'\n");
 	}
     } elsif ($state eq 'want_data') {
-	Frontier::RPC2::die($self, "wanted \`data', got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`data', got \`$tag'\n")
 	    if ($tag ne 'data');
-	push @{ $self->{'rpc_state'} }, 'array';
+	push @{ $expat->{'rpc_state'} }, 'array';
     } elsif ($state eq 'array') {
-	Frontier::RPC2::die($self, "wanted \`value' tag, got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`value' tag, got \`$tag'\n")
 	    if ($tag ne 'value');
-	$self->{'rpc_text'} = "";
-	$self->{'may_get_cdata'} = 1;
-	push @{ $self->{'rpc_state'} }, 'value';
+	$expat->{'rpc_text'} = "";
+	$expat->{'may_get_cdata'} = 1;
+	push @{ $expat->{'rpc_state'} }, 'value';
     } elsif ($state eq 'struct') {
-	Frontier::RPC2::die($self, "wanted \`member' tag, got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`member' tag, got \`$tag'\n")
 	    if ($tag ne 'member');
-	push @{ $self->{'rpc_state'} }, 'want_member_name';
+	push @{ $expat->{'rpc_state'} }, 'want_member_name';
     } elsif ($state eq 'want_member_name') {
-	Frontier::RPC2::die($self, "wanted \`name' tag, got \`$tag'\n")
+	Frontier::RPC2::die($expat, "wanted \`name' tag, got \`$tag'\n")
 	    if ($tag ne 'name');
-	push @{ $self->{'rpc_state'} }, 'member_name';
-	$self->{'rpc_text'} = "";
+	push @{ $expat->{'rpc_state'} }, 'member_name';
+	$expat->{'rpc_text'} = "";
     } elsif ($state eq 'member_name') {
-	Frontier::RPC2::die($self, "wanted data, got tag \`$tag'\n");
+	Frontier::RPC2::die($expat, "wanted data, got tag \`$tag'\n");
     } elsif ($state eq 'cdata') {
-	Frontier::RPC2::die($self, "wanted data, got tag \`$tag'\n");
+	Frontier::RPC2::die($expat, "wanted data, got tag \`$tag'\n");
     } else {
-	Frontier::RPC2::die($self, "internal error, unknown state \`$state'\n");
+	Frontier::RPC2::die($expat, "internal error, unknown state \`$state'\n");
     }
 }
 
 sub end {
-    my $self = shift; my $tag = shift;
+    my $expat = shift; my $tag = shift;
 
-    my $state = pop @{ $self->{'rpc_state'} };
+    my $state = pop @{ $expat->{'rpc_state'} };
 
     if ($state eq 'cdata') {
-	my $value = $self->{'rpc_text'};
+	my $value = $expat->{'rpc_text'};
 	if ($tag eq 'base64') {
 	    $value = Frontier::RPC2::Base64->new($value);
 	} elsif ($tag eq 'boolean') {
 	    $value = Frontier::RPC2::Boolean->new($value);
 	} elsif ($tag eq 'dateTime.iso8601') {
 	    $value = Frontier::RPC2::DateTime::ISO8601->new($value);
-	} elsif ($self->{'use_objects'}) {
-	    if ($tag eq 'i4') {
+	} elsif ($expat->{'use_objects'}) {
+	    if ($tag eq 'i4' or $tag eq 'int') {
 		$value = Frontier::RPC2::Integer->new($value);
 	    } elsif ($tag eq 'float') {
 		$value = Frontier::RPC2::Float->new($value);
@@ -420,56 +439,56 @@ sub end {
 		$value = Frontier::RPC2::String->new($value);
 	    }
 	}
-	$self->{'rpc_value'} = $value;
+	$expat->{'rpc_value'} = $value;
     } elsif ($state eq 'member_name') {
-	$self->{'rpc_member_name'}[-1] = $self->{'rpc_text'};
-	$self->{'rpc_state'}[-1] = 'want_value';
+	$expat->{'rpc_member_name'}[-1] = $expat->{'rpc_text'};
+	$expat->{'rpc_state'}[-1] = 'want_value';
     } elsif ($state eq 'method_name') {
-	$self->{'rpc_method_name'} = $self->{'rpc_text'};
-	$self->{'rpc_state'}[-1] = 'want_params';
+	$expat->{'rpc_method_name'} = $expat->{'rpc_text'};
+	$expat->{'rpc_state'}[-1] = 'want_params';
     } elsif ($state eq 'struct') {
-	$self->{'rpc_value'} = pop @{ $self->{'rpc_container'} };
-	pop @{ $self->{'rpc_member_name'} };
+	$expat->{'rpc_value'} = pop @{ $expat->{'rpc_container'} };
+	pop @{ $expat->{'rpc_member_name'} };
     } elsif ($state eq 'array') {
-	$self->{'rpc_value'} = pop @{ $self->{'rpc_container'} };
+	$expat->{'rpc_value'} = pop @{ $expat->{'rpc_container'} };
     } elsif ($state eq 'value') {
 	# the rpc_text is a string if no type tags were given
-	if ($self->{'may_get_cdata'}) {
-	    $self->{'may_get_cdata'} = 0;
-	    if ($self->{'use_objects'}) {
-		$self->{'rpc_value'}
-		= Frontier::RPC2::String->new($self->{'rpc_text'});
+	if ($expat->{'may_get_cdata'}) {
+	    $expat->{'may_get_cdata'} = 0;
+	    if ($expat->{'use_objects'}) {
+		$expat->{'rpc_value'}
+		= Frontier::RPC2::String->new($expat->{'rpc_text'});
 	    } else {
-		$self->{'rpc_value'} = $self->{'rpc_text'};
+		$expat->{'rpc_value'} = $expat->{'rpc_text'};
 	    }
 	}
-	my $container = $self->{'rpc_container'}[-1];
+	my $container = $expat->{'rpc_container'}[-1];
 	if (ref($container) eq 'ARRAY') {
-	    push @$container, $self->{'rpc_value'};
+	    push @$container, $expat->{'rpc_value'};
 	} elsif (ref($container) eq 'HASH') {
-	    $container->{ $self->{'rpc_member_name'}[-1] } = $self->{'rpc_value'};
+	    $container->{ $expat->{'rpc_member_name'}[-1] } = $expat->{'rpc_value'};
 	}
     }
 }
 
 sub char {
-    my $self = shift; my $text = shift;
+    my $expat = shift; my $text = shift;
 
-    $self->{'rpc_text'} .= $text;
+    $expat->{'rpc_text'} .= $text;
 }
 
 sub proc {
 }
 
 sub final {
-    my $self = shift;
+    my $expat = shift;
 
-    $self->{'rpc_value'} = pop @{ $self->{'rpc_container'} };
+    $expat->{'rpc_value'} = pop @{ $expat->{'rpc_container'} };
     
     return {
-	value => $self->{'rpc_value'},
-	type => $self->{'rpc_type'},
-	method_name => $self->{'rpc_method_name'},
+	value => $expat->{'rpc_value'},
+	type => $expat->{'rpc_type'},
+	method_name => $expat->{'rpc_method_name'},
     };
 }
 
@@ -514,6 +533,13 @@ package Frontier::RPC2::String;
 
 use vars qw{@ISA};
 @ISA = qw{Frontier::RPC2::DataType};
+
+sub repr {
+    my $self = shift;
+    my $value = $$self;
+    $value =~ s/([&<>\"])/$Frontier::RPC2::char_entities{$1}/ge;
+    $value;
+}
 
 package Frontier::RPC2::Double;
 
@@ -635,6 +661,9 @@ base64 data using the `C<value>' method of those objects, i.e.:
   $boolean = $boolean_object->value;
 
   $boolean_object->value(1);
+
+Note: `C<base64()>' does I<not> encode or decode base64 data for you,
+you must use MIME::Base64 or similar module for that.
 
 =item $int_object = $coder->int(42);
 

@@ -10,7 +10,7 @@ Packager: ken@bitsko.slc.ut.us (Ken MacLeod)
 BuildRoot: /tmp/Frontier-RPC
 
 #
-# $Id: Frontier-RPC.spec,v 1.1 1998/04/14 03:56:50 ken Exp $
+# $Id: Frontier-RPC.spec,v 1.2 2000/06/01 15:32:06 kmacleod Exp $
 #
 
 %description
@@ -46,6 +46,8 @@ done
 /usr/lib/perl5/Frontier/Client.pm
 /usr/lib/perl5/Frontier/Daemon.pm
 /usr/lib/perl5/Frontier/RPC2.pm
+/usr/lib/perl5/Apache/XMLRPC.pm
 /usr/lib/perl5/man/man3/Frontier::Client.3
 /usr/lib/perl5/man/man3/Frontier::Daemon.3
 /usr/lib/perl5/man/man3/Frontier::RPC2.3
+/usr/lib/perl5/man/man3/Apache::XMLRPC.3

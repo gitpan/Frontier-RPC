@@ -3,7 +3,7 @@
 # Frontier::Daemon is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Id: Daemon.pm,v 1.3 1999/01/28 21:11:41 kmacleod Exp $
+# $Id: Daemon.pm,v 1.5 2001/10/03 01:30:54 kmacleod Exp $
 #
 
 # NOTE: see Net::pRPC for a Perl RPC implementation
@@ -30,7 +30,7 @@ sub new {
     return undef unless $self;
 
     ${*$self}{'methods'} = $args{'methods'};
-    ${*$self}{'decode'} = new Frontier::RPC2;
+    ${*$self}{'decode'} = new Frontier::RPC2 'use_objects' => $args{'use_objects'};
     ${*$self}{'response'} = new HTTP::Response 200;
     ${*$self}{'response'}->header('Content-Type' => 'text/xml');
 
@@ -45,8 +45,11 @@ sub new {
 		$conn->send_error(RC_FORBIDDEN);
 	    }
 	}
+        $conn->close;
 	$conn = undef;		# close connection
     }
+
+    return $self;
 }
 
 =head1 NAME
@@ -71,6 +74,12 @@ subclass of I<IO::Socket::INET>.
 
 I<Frontier::Daemon> takes a `C<methods>' parameter, a hash that maps
 an incoming RPC method name to reference to a subroutine.
+
+I<Frontier::Daemon> takes a `C<use_objects>' parameter that if set to
+a non-zero value will convert incoming E<lt>intE<gt>, E<lt>i4E<gt>,
+E<lt>floatE<gt>, and E<lt>stringE<gt> values to objects instead of
+scalars.  See int(), float(), and string() in Frontier::RPC2 for more
+details.
 
 =head1 SEE ALSO
 

@@ -2,6 +2,33 @@ Revision history for Perl extension Frontier::RPC.
 
 `*' indicates backward incompatible changes
 
+0.07
+	- Added prototype 'docs/changes.xml' and XSLT stylesheet,
+	  stylesheet contributed by Laurent Bossavit, based on
+	  changes.xml from Apache XML's Cocoon
+	- Corrected COPYING to be "same terms as Perl" (ie. Artistic
+	  and GPL)
+	- Added Frontier::Responder CGI responder, contributed by Joe
+	  Johnston <jjohn@oreilly.com>
+	- Merged POD for Apache::XMLRPC, contributed by Tim Peoples
+	  <tep@colltech.com>
+	- Added examples/validator1-daemon.pl validation suite
+	- Added Apache::XMLRPC, contributed by Ed Hill
+          <ed-hill@uiowa.edu>
+	- Added type checking for newly created special data types,
+	  contributed by Nick Bauman <nick.bauman@eliancecorp.com>
+	- serialize blessed array and hash references as <array> and
+	  <struct>s, suggested by John Posner <jjp@connix.com>
+	- Frontier::Daemon now supports use_objects, suggested by John
+	  Posner
+        - Added docs/make-rel to create releases from CVS
+	- fixes
+	  - create an Integer special object for <int>s (was just
+	    <i4>s), reported by John Posner
+	  - use_objects wasn't working, reported by John Posner
+	  - an explicity-specified String type now correctly 
+	    encodes < > & and "
+
 0.06  Sat Nov 20 17:09:40 CST 1999
 	- Nick Bauman <nixnixnix@yahoo.com> sent in a patch to add
 	  Integer, Float, and String objects to avoid implicit

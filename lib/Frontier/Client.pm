@@ -3,7 +3,7 @@
 # Frontier::Client is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Id: Client.pm,v 1.7 1999/11/21 00:13:21 kmacleod Exp $
+# $Id: Client.pm,v 1.8 2001/10/03 01:30:54 kmacleod Exp $
 #
 
 # NOTE: see Net::pRPC for a Perl RPC implementation
@@ -61,7 +61,7 @@ sub call {
 
     my $response = $self->{'ua'}->request($self->{'rq'});
 
-    if (substr($response->code, 0, 1) ne '2') {
+    if (!$response->is_success) {
 	die $response->status_line . "\n";
     }
 

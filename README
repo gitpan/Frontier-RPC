@@ -1,4 +1,4 @@
-    $Id: README,v 1.3 1999/09/02 20:16:49 kmacleod Exp $
+    $Id: README,v 1.11 2002/08/02 14:54:50 kmacleod Exp $
 
 			    Frontier::RPC
 
@@ -9,13 +9,18 @@
 			     Ken MacLeod
 			 ken@bitsko.slc.ut.us
 
+		       With contributions from
+	Nick Bauman, Laurent Bossavit, Sean Brown, Jon Frisby,
+   Ed Hill, Joe Johnston, Skip Montanaro, Tim Peoples, John Posner,
+       Aaron Ross, Bas Schulte, Marc Singer, and Terry Triplett
+
 INTRODUCTION
 
     Frontier::RPC implements UserLand Software's XML RPC (Remote
     Procedure Calls using Extensible Markup Language).  Frontier::RPC
     includes both a client module for making requests to a server and
-    a daemon module for implementing servers.  Frontier::RPC uses RPC2
-    format messages.
+    several server modules for implementing servers using CGI, Apache,
+    and standalone with HTTP::Daemon.
 
     See the file Changes for user-visible changes.  See the `examples'
     directory for an example of using Frontier::RPC.  See the
@@ -24,14 +29,13 @@ INTRODUCTION
 <http://www.xmlrpc.com/>
 
     Newer versions of this module can be found on CPAN or at
-    <http://bitsko.slc.ut.us/~ken/xml-rpc/>.  Questions can be
+    <http://perl-xml.sourceforge.net/xml-rpc/>.  Questions can be
     directed to the discussion board on XML-RPC.com or to the XML-RPC
     mailing list.  To join the XML-RPC mailing list visit
-    <http://egroups.com/group/xml-rpc/>.
+    <http://yahoogroups.com/group/xml-rpc/>.
 
-    Copyright (C) 1998, 1999 Ken MacLeod
+    Copyright (C) 1998-2002 Ken MacLeod
     Frontier::RPC is distributed under the same terms as Perl.
-    See the file COPYING for distribution terms.
 
 OVERVIEW
 
@@ -48,6 +52,9 @@ OVERVIEW
 
     The Frontier::RPC2 module implements the encoding and decoding of
     XML RPC requests using the XML::Parser Perl module.
+
+    Apache::XMLRPC serves XML-RPC requests from Apache's mod_perl.
+    Frontier::Responder serves XML-RPC requests as a CGI script.
 
 QUICK USAGE GUIDE
 
@@ -88,13 +95,15 @@ QUICK USAGE GUIDE
 
 INSTALLATION
 
-    Frontier::RPC requires the following Perl modules from CPAN:
+    Frontier::RPC requires the following Perl modules from CPAN, if
+    not already included in your installed Perl:
 
 <http://www.perl.com/CPAN/modules/by-module/>
 
         Data-Dumper   (in the Data directory)
         MIME-Base64   (in the MIME directory)
         MD5           (in the MD5 directory)
+        HTML-Tagset   (in the HTML directory)
         HTML-Parser   (in the HTML directory)
         URI           (in the URI directory)
         libnet        (in the Net directory)
