@@ -1,0 +1,36 @@
+1999-01-28  Ken MacLeod  <kmacleod@outlaw.cycletime.com>
+
+	* lib/Frontier/Daemon.pm (serve): moved to RPC2.pm
+
+1999-01-25  Ken MacLeod  <kmacleod@outlaw.cycletime.com>
+
+	* lib/Frontier/Client.pm: added boolean, date, and base64 shortcuts
+
+	* lib/Frontier/RPC2.pm: added boolean, date, and base64 data types
+
+1999-01-19  Ken MacLeod  <kmacleod@outlaw.cycletime.com>
+
+	* README: updated required Perl modules, mailing lists, added QUICK USAGE GUIDE
+
+	* examples/states-client.pl: added
+
+	* lib/Frontier/RPC2.pm (decode): changed to newer XML::Parser call style
+	(die): user newer XML::Parser line numbering
+	(start): call Frontier::RPC2::die because $self is now an Expat instance
+
+1998-07-27  Ken MacLeod  <ken@bitsko.slc.ut.us>
+
+	* lib/Frontier/RPC2.pm (start, end): add <name> tag for named
+	params
+
+	* lib/Frontier/Daemon.pm (new): add Content-Type header
+
+	* lib/Frontier/Client.pm (new): change `host', `port' to `url'
+	(new): add Content-Type header
+
+	* examples/rpc-client.pl: change HOST[:PORT] to URL
+	use `dumpvar' to dump result
+
+1998-04-13  Ken MacLeod  <ken@bitsko.slc.ut.us>
+
+	* release 0.01

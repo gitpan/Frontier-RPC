@@ -1,0 +1,110 @@
+    $Id: README,v 1.2 1999/01/19 19:14:41 kmacleod Exp $
+
+			    Frontier::RPC
+
+	   A Perl 5 module for performing Remote Procedure
+		Calls using Extensible Markup Language
+
+
+			     Ken MacLeod
+			 ken@bitsko.slc.ut.us
+
+INTRODUCTION
+
+    Frontier::RPC implements UserLand Software's XML RPC (Remote
+    Procedure Calls using Extensible Markup Language).  Frontier::RPC
+    includes both a client module for making requests to a server and
+    a daemon module for implementing servers.  Frontier::RPC uses RPC2
+    format messages.
+
+    See the file Changes for user-visible changes.  See the `examples'
+    directory for an example of using Frontier::RPC.  See the
+    ``XML RPC: Home Page'' for more information on XML RPC.
+
+<http://www.xmlrpc.com/>
+
+    Newer versions of this module can be found on CPAN or at
+    <http://bitsko.slc.ut.us/~ken/xml-rpc/>.  Questions can be
+    directed to the discussion board on XML-RPC.com or to the Perl-XML
+    mailing list.  To join the Perl-XML mailing list, send an email
+    message to ListManager@ActiveState.com with the following text in
+    the body: Subscribe Perl-XML
+
+    Copyright (C) 1998, 1999 Ken MacLeod
+    Frontier::RPC is distributed under the same terms as Perl.
+    See the file COPYING for distribution terms.
+
+OVERVIEW
+
+    RPC client connections are made by creating instances of
+    Frontier::Client objects that record the server name, and then
+    issuing `call' requests that send a method name and parameters to
+    the server.
+
+    RPC daemons are mini-HTTP servers (using HTTP::Daemon from the
+    `libwww' Perl module).  Daemons are created by first defining the
+    procedures you want to make available to RPC and then passing a
+    list of those procedures as you create the Frontier::Daemon
+    object.
+
+    The Frontier::RPC2 module implements the encoding and decoding of
+    XML RPC requests using the XML::Parser Perl module.
+
+QUICK USAGE GUIDE
+
+    Frontier::RPC converts between XML-RPC <struct>s and Perl hashes,
+    <array>s and Perl arrays, and all others XML-RPC types to Perl
+    scalars.
+
+    To call an RPC server, use Frontier::Client: 
+
+        use Frontier::Client;
+
+        $server = Frontier::Client->new(url => $url);
+
+        $result = $server->call($method, @args);
+
+    $url is the URL of the XML-RPC server, like
+    `http://betty.userland.com/RPC2', $method is the XML-RPC procedure
+    name to call, and @args is a list of hashes, arrays, or scalars to
+    pass to the procedure.  See `examples/states-client.pl' for an
+    example of an XML-RPC client.
+
+    To create an XML-RPC server, use Frontier::Daemon.
+    Frontier::Daemon is a subclass of HTTP::Daemon, so takes all the
+    options that HTTP::Daemon takes for setting up a server, such as
+    the port number. In addition, Frontier::Daemon takes a `methods'
+    option that is a hash containing the RPC procedure names and
+    references to Perl subroutines:
+
+        use Frontier::Daemon;
+
+        Frontier::Daemon->new(methods => {
+            'rpcName' => &sub_name,
+        });
+
+    The subroutines get called with the XML-RPC parameters as hashes,
+    arrays, and scalars.  See `examples/states-daemon.pl' for an
+    example of an XML-RPC server.
+
+INSTALLATION
+
+    Frontier::RPC requires the following Perl modules from CPAN:
+
+<http://www.perl.com/CPAN/modules/by-module/>
+
+        Data-Dumper   (in the Data directory)
+        MIME-Base64   (in the MIME directory)
+        MD5           (in the MD5 directory)
+        HTML-Parser   (in the HTML directory)
+        URI           (in the URI directory)
+        libnet        (in the Net directory)
+        libwww-perl   (in the HTTP directory)
+        XML-Parser    (in the XML directory)
+
+    Frontier::RPC installs as a standard Perl module
+
+        perl Makefile.PL
+        make
+        make test
+        make install

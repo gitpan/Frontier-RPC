@@ -1,0 +1,24 @@
+Revision history for Perl extension Frontier::RPC.
+
+`*' indicates backward incompatible changes
+
+0.03  Thu Jan 28 15:10:35 CST 1999
+	- Move server handler from Frontier::Daemon to Frontier::RPC2
+	  so it can be used from other transports
+	- Frontier::Client: Added support for boolean, double, date,
+	  and base64 data types
+
+0.02  Tue Jan 19 13:08:05 CST 1999
+	- updated README, added a QUICK USAGE GUIDE, updated required
+	  Perl modules, and updated mailing list info
+	- added a simpler client demo, `examples/states-client.pl'
+	- upgraded to newer version of XML::Parser API
+	* rpc-client.pl, Frontier::Client.pm: use full URL instead of
+	  HOST and PORT
+	- recognize <name> tags for parameters
+	- fixes
+	  - add Content-Type: text/xml header
+
+0.01  Mon Apr 13 10:57:31 1998
+	- original version; created by h2xs 1.18
+

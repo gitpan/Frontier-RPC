@@ -1,0 +1,15 @@
+COPYING
+ChangeLog
+Changes
+Frontier-RPC.spec
+Frontier-RPC-0.03.spec
+MANIFEST
+Makefile.PL
+README
+examples/rpc-client.pl
+examples/states-client.pl
+examples/states-daemon.pl
+lib/Frontier/Client.pm
+lib/Frontier/RPC2.pm
+lib/Frontier/Daemon.pm
+test.pl
