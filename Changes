@@ -2,6 +2,20 @@ Revision history for Perl extension Frontier::RPC.
 
 `*' indicates backward incompatible changes
 
+0.05  Tue Apr 13 14:58:00 CDT 1999
+	- add a prerequisit for XML::Parser in Makefile.PL
+	- fixes
+	  - use a new test for encoding ints, doubles, and strings
+	    fixing a bug where some strings were encoded as <double>
+	  - warnings from perl -w
+
+0.04  Tue Feb  2 09:45:17 CST 1999
+	- add shortcuts for boolean, date, and base64 types to
+	  Frontier::RPC2 too
+	- fixes
+	  - fix encoding of nested hashes
+	  - fix decoding of long strings
+
 0.03  Thu Jan 28 15:10:35 CST 1999
 	- Move server handler from Frontier::Daemon to Frontier::RPC2
 	  so it can be used from other transports

@@ -3,7 +3,7 @@
 # Frontier::RPC is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Id: RPC2.pm,v 1.5 1999/01/28 21:11:41 kmacleod Exp $
+# $Id: RPC2.pm,v 1.7 1999/04/13 19:43:46 kmacleod Exp $
 #
 
 # NOTE: see Storable for marshalling.
@@ -50,7 +50,7 @@ sub encode_call {
 <params>
 EOF
 
-    push @text, $self->_array([@_], 1);
+    push @text, $self->_params([@_]);
 
     push @text, <<EOF;
 </params>
@@ -70,7 +70,7 @@ sub encode_response {
 <params>
 EOF
 
-    push @text, $self->_array([@_], 1);
+    push @text, $self->_params([@_]);
 
     push @text, <<EOF;
 </params>
@@ -90,7 +90,7 @@ sub encode_fault {
 <fault>
 EOF
 
-    push @text, $self->_array([ {faultCode => $code, faultString => $message} ], 0);
+    push @text, $self->_item({faultCode => $code, faultString => $message});
 
     push @text, <<EOF;
 </fault>
@@ -127,51 +127,80 @@ sub serve {
 	return $self->encode_fault(4, "error executing RPC \`$method'.\n" . $@);
     }
 
-    my $xml = $self->encode_response($result);
-    return $xml;
+    my $response_xml = $self->encode_response($result);
+    return $response_xml;
 }
 
-sub _array {
-    my $self = shift; my $array = shift; my $is_param = shift;
-
-    my $param_s = $is_param ? "<param>" : "";
-    my $param_e = $is_param ? "</param>" : "";
+sub _params {
+    my $self = shift; my $array = shift;
 
     my @text;
 
-    my $arg;
-    foreach $arg (@$array) {
-	my $ref = ref($arg);
-	if (!$ref) {
-	    push (@text,
-		  "$param_s<value>",
-		  $self->_scalar ($arg),
-		  "</value>$param_e\n");
-        } elsif ($ref eq 'ARRAY') {
-	    push (@text,
-		  "$param_s<value><array><data>\n",
-		  $self->_array($arg),
-		  "</data></array></value>$param_e\n");
-	} elsif ($ref eq 'HASH') {
-	    push @text, "$param_s<value><struct>\n";
-	    my ($key, $value);
-	    while (($key, $value) = each %$arg) {
-		push (@text,
-		      "<member><name>$key</name><value>",
-		      $self->_scalar($value),
-		      "</value></member>\n");
-	    }
-	    push @text, "</struct></value>$param_e\n";
-	} elsif ($ref eq 'Frontier::RPC2::Boolean') {
-	    push @text, "$param_s<value><boolean>", $arg->repr, "</boolean></value>$param_e\n";
-	} elsif ($ref eq 'Frontier::RPC2::DateTime::ISO8601') {
-	    push @text, "$param_s<value><dateTime.iso8601>", $arg->repr, "</dateTime.iso8601></value>$param_e\n";
-	} elsif ($ref eq 'Frontier::RPC2::Base64') {
-	    push @text, "$param_s<value><base64>", $arg->repr, "</base64></value>$param_e\n";
-	} else {
-	    die "can't convert \`$arg' to XML\n";
-	}
+    my $item;
+    foreach $item (@$array) {
+	push (@text, "<param>",
+	      $self->_item($item),
+	      "</param>\n");
     }
+
+    return @text;
+}
+
+sub _item {
+    my $self = shift; my $item = shift;
+
+    my @text;
+
+    my $ref = ref($item);
+    if (!$ref) {
+	push (@text, $self->_scalar ($item));
+    } elsif ($ref eq 'ARRAY') {
+	push (@text, $self->_array($item));
+    } elsif ($ref eq 'HASH') {
+	push (@text, $self->_hash($item));
+    } elsif ($ref eq 'Frontier::RPC2::Boolean') {
+	push @text, "<value><boolean>", $item->repr, "</boolean></value>\n";
+    } elsif ($ref eq 'Frontier::RPC2::DateTime::ISO8601') {
+	push @text, "<value><dateTime.iso8601>", $item->repr, "</dateTime.iso8601></value>\n";
+    } elsif ($ref eq 'Frontier::RPC2::Base64') {
+	push @text, "<value><base64>", $item->repr, "</base64></value>\n";
+    } else {
+	die "can't convert \`$item' to XML\n";
+    }
+
+    return @text;
+}
+
+sub _hash {
+    my $self = shift; my $hash = shift;
+
+    my @text = "<value><struct>\n";
+
+    my ($key, $value);
+    while (($key, $value) = each %$hash) {
+	push (@text,
+	      "<member><name>$key</name>",
+	      $self->_item($value),
+	      "</member>\n");
+    }
+
+    push @text, "</struct></value>\n";
+
+    return @text;
+}
+
+
+sub _array {
+    my $self = shift; my $array = shift;
+
+    my @text = "<value><array><data>\n";
+
+    my $item;
+    foreach $item (@$array) {
+	push @text, $self->_item($item);
+    }
+
+    push @text, "</data></array></value>\n";
 
     return @text;
 }
@@ -179,13 +208,14 @@ sub _array {
 sub _scalar {
     my $self = shift; my $value = shift;
 
-    if ($value == 0 && $value ne "0") {
-	$value =~ s/([&<>\"])/$char_entities{$1}/ge;
-	return ("<string>$value</string>");
-    } elsif ($value =~ /^[+-]?\d+$/) {
-	return ("<i4>$value</i4>");
+    # these are from `perldata(1)'
+    if ($value =~ /^[+-]?\d+$/) {
+	return ("<value><i4>$value</i4></value>");
+    } elsif ($value =~ /^(-?(?:\d+(?:\.\d*)?|\.\d+)|([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?)$/) {
+	return ("<value><double>$value</double></value>");
     } else {
-	return ("<double>$value</double>");
+	$value =~ s/([&<>\"])/$char_entities{$1}/ge;
+	return ("<value><string>$value</string></value>");
     }
 }
 
@@ -196,6 +226,24 @@ sub decode {
     return $self->{'parser'}->parsestring($string);
 }
 
+# shortcuts
+sub base64 {
+    my $self = shift;
+
+    return Frontier::RPC2::Base64->new(@_);
+}
+
+sub boolean {
+    my $self = shift;
+
+    return Frontier::RPC2::Boolean->new(@_);
+}
+
+sub date_time {
+    my $self = shift;
+
+    return Frontier::RPC2::DateTime::ISO8601->new(@_);
+}
 
 ######################################################################
 ###
@@ -239,6 +287,7 @@ sub start {
 	Frontier::RPC2::die($self, "wanted \`methodName' tag, got \`$tag'\n")
 	    if ($tag ne 'methodName');
 	push @{ $self->{'rpc_state'} }, 'method_name';
+	$self->{'rpc_text'} = "";
     } elsif ($state eq 'method_response') {
 	if ($tag eq 'params') {
 	    $self->{'rpc_type'} = 'response';
@@ -278,6 +327,7 @@ sub start {
 	    push @{ $self->{'rpc_member_name'} }, undef;
 	    push @{ $self->{'rpc_state'} }, 'struct';
 	} elsif ($scalars{$tag}) {
+	    $self->{'rpc_text'} = "";
 	    push @{ $self->{'rpc_state'} }, 'cdata';
 	} else {
 	    Frontier::RPC2::die($self, "wanted a data type, got \`$tag'\n");
@@ -298,6 +348,7 @@ sub start {
 	Frontier::RPC2::die($self, "wanted \`name' tag, got \`$tag'\n")
 	    if ($tag ne 'name');
 	push @{ $self->{'rpc_state'} }, 'member_name';
+	$self->{'rpc_text'} = "";
     } elsif ($state eq 'member_name') {
 	Frontier::RPC2::die($self, "wanted data, got tag \`$tag'\n");
     } elsif ($state eq 'cdata') {
@@ -346,7 +397,7 @@ sub end {
 sub char {
     my $self = shift; my $text = shift;
 
-    $self->{'rpc_text'} = $text;
+    $self->{'rpc_text'} .= $text;
 }
 
 sub proc {
@@ -419,6 +470,10 @@ Frontier::RPC2 - encode/decode RPC2 format XML
 
  $response_xml = $coder->serve($request_xml, $methods);
 
+ $boolean_object = $coder->boolean($boolean);
+ $date_time_object = $coder->date_time($date_time);
+ $base64_object = $coder->base64($base64);
+
 =head1 DESCRIPTION
 
 I<Frontier::RPC2> encodes and decodes XML RPC calls.
@@ -464,6 +519,22 @@ array contains a hash with the two members `C<faultCode>' and
 `C<serve>' decodes `C<$request_xml>', looks up the called method name
 in the `C<$methods>' hash and calls it, and then encodes and returns
 the response as XML.
+
+=item $boolean_object = $coder->boolean($boolean);
+=item $date_time_object = $coder->date_time($date_time);
+=item $base64_object = $coder->base64($base64);
+
+These methods create and return XML-RPC-specific datatypes that can be
+passed to the encoder.  The decoder may also return these datatypes.
+The corresponding package names (for use with `C<ref()>', for example)
+are `C<Frontier::RPC2::Boolean>',
+`C<Frontier::RPC2::DateTime::ISO8601>', and
+`C<Frontier::RPC2::Base64>'.
+
+You can retrieve the value of boolean, date/time, and base64 data
+using the `C<value>' method of those objects, i.e.:
+
+  $boolean = $boolean_object->value;
 
 =back
 

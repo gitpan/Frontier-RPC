@@ -3,10 +3,10 @@
 # This program is free software; you can redistribute it and/or
 # modify it under the same terms as Perl itself.
 #
-# $Id: Makefile.PL,v 1.1.1.1 1998/04/14 03:50:48 ken Exp $
+# $Id: Makefile.PL,v 1.2 1999/04/13 19:43:46 kmacleod Exp $
 #
 
-$VERSION = '0.03';
+$VERSION = '0.05';
 
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
@@ -14,5 +14,6 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'	=> 'Frontier::RPC',
     'VERSION_FROM' => 'Makefile.PL',
-    dist        => {'COMPRESS'  => 'gzip', 'SUFFIX'    => '.gz'},
+    'PREREQ_PM' => { XML::Parser => '2.19' },
+    'dist'     => {'COMPRESS'  => 'gzip', 'SUFFIX'    => '.gz'},
 );

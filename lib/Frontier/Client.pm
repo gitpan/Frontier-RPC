@@ -3,7 +3,7 @@
 # Frontier::Client is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Id: Client.pm,v 1.4 1999/01/28 21:11:41 kmacleod Exp $
+# $Id: Client.pm,v 1.5 1999/04/13 19:43:46 kmacleod Exp $
 #
 
 # NOTE: see Net::pRPC for a Perl RPC implementation
@@ -48,7 +48,7 @@ sub call {
 
     my $content = $response->content;
     # FIXME bug in Frontier's XML
-    $content =~ s/(<\?XML\s+VERSION)/\L\1\E/;
+    $content =~ s/(<\?XML\s+VERSION)/\L$1\E/;
     my $result = $self->{'enc'}->decode($content);
 
     if ($result->{'type'} eq 'fault') {

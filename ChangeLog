@@ -1,3 +1,20 @@
+1999-04-13  Ken MacLeod  <kmacleod@serpentina.terrapinlabs.com>
+
+	* Makefile.PL: add a PREREQ_PM for XML::Parser
+
+	* lib/Frontier/RPC2.pm (serve): fix reused name in same scope
+	(_scalar): use different technique for checking for int, double,
+	string
+
+	* lib/Frontier/Client.pm (call): use $1 instead of \1
+
+1999-02-02  Ken MacLeod  <kmacleod@outlaw.cycletime.com>
+
+	* lib/Frontier/RPC2.pm: fixed nested hashes by relayering encoding
+	(_item): added
+	(_params): added
+	(base64, boolean, date_time): added shortcuts
+
 1999-01-28  Ken MacLeod  <kmacleod@outlaw.cycletime.com>
 
 	* lib/Frontier/Daemon.pm (serve): moved to RPC2.pm
