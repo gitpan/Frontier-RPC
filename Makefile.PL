@@ -6,7 +6,7 @@
 # $Id: Makefile.PL,v 1.2 1999/04/13 19:43:46 kmacleod Exp $
 #
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence

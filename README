@@ -1,4 +1,4 @@
-    $Id: README,v 1.2 1999/01/19 19:14:41 kmacleod Exp $
+    $Id: README,v 1.3 1999/09/02 20:16:49 kmacleod Exp $
 
 			    Frontier::RPC
 
@@ -25,10 +25,9 @@ INTRODUCTION
 
     Newer versions of this module can be found on CPAN or at
     <http://bitsko.slc.ut.us/~ken/xml-rpc/>.  Questions can be
-    directed to the discussion board on XML-RPC.com or to the Perl-XML
-    mailing list.  To join the Perl-XML mailing list, send an email
-    message to ListManager@ActiveState.com with the following text in
-    the body: Subscribe Perl-XML
+    directed to the discussion board on XML-RPC.com or to the XML-RPC
+    mailing list.  To join the XML-RPC mailing list visit
+    <http://egroups.com/group/xml-rpc/>.
 
     Copyright (C) 1998, 1999 Ken MacLeod
     Frontier::RPC is distributed under the same terms as Perl.

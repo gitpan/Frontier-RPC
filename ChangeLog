@@ -1,3 +1,30 @@
+1999-11-20  Ken MacLeod  <ken@jess>
+
+	* examples/cli-xml-rpc.pl, examples/example-cli-input: added
+
+	* lib/Frontier/Client.pm, lib/Frontier/RPC2.pm: added Integer,
+	Float, and String objects; merge code from Nick Bauman
+
+1999-10-11  Ken MacLeod  <ken@jess>
+
+	* lib/Frontier/RPC2.pm (new): define encoding_ as "" if not present
+
+1999-10-07  Ken MacLeod  <ken@jess>
+
+	* lib/Frontier/RPC2.pm (end): zero `may_get_cdata' flag after use
+
+1999-09-02  Ken MacLeod  <ken@jess>
+
+	* lib/Frontier/Client.pm (new): support key, value pairs or hash
+	add encoding, debug, and proxy options
+
+	* lib/Frontier/RPC2.pm (new): support key, value pairs or hash
+	add encoding option
+
+1999-05-24  Ken MacLeod  <kmacleod@serpentina.terrapinlabs.com>
+
+	* lib/Frontier/RPC2.pm (start): fix <value> defaulting to string
+
 1999-04-13  Ken MacLeod  <kmacleod@serpentina.terrapinlabs.com>
 
 	* Makefile.PL: add a PREREQ_PM for XML::Parser

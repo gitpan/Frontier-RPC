@@ -3,7 +3,7 @@
 # Frontier::RPC is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Id: RPC2.pm,v 1.7 1999/04/13 19:43:46 kmacleod Exp $
+# $Id: RPC2.pm,v 1.12 1999/11/21 00:13:21 kmacleod Exp $
 #
 
 # NOTE: see Storable for marshalling.
@@ -34,9 +34,18 @@ use vars qw{%scalars %char_entities};
 );
 
 sub new {
-    my $class = shift; my %args = @_;
+    my $class = shift;
+    my $self = ($#_ == 0) ? { %{ (shift) } } : { @_ };
 
-    return bless \%args, $class;
+    bless $self, $class;
+
+    if (defined $self->{'encoding'}) {
+	$self->{'encoding_'} = " encoding=\"$self->{'encoding'}\"";
+    } else {
+	$self->{'encoding_'} = "";
+    }
+
+    return $self;
 }
 
 sub encode_call {
@@ -44,7 +53,7 @@ sub encode_call {
 
     my @text;
     push @text, <<EOF;
-<?xml version="1.0"?>
+<?xml version="1.0"$self->{'encoding_'}?>
 <methodCall>
 <methodName>$proc</methodName>
 <params>
@@ -65,7 +74,7 @@ sub encode_response {
 
     my @text;
     push @text, <<EOF;
-<?xml version="1.0"?>
+<?xml version="1.0"$self->{'encoding_'}?>
 <methodResponse>
 <params>
 EOF
@@ -85,7 +94,7 @@ sub encode_fault {
 
     my @text;
     push @text, <<EOF;
-<?xml version="1.0"?>
+<?xml version="1.0"$self->{'encoding_'}?>
 <methodResponse>
 <fault>
 EOF
@@ -160,6 +169,12 @@ sub _item {
 	push (@text, $self->_hash($item));
     } elsif ($ref eq 'Frontier::RPC2::Boolean') {
 	push @text, "<value><boolean>", $item->repr, "</boolean></value>\n";
+    } elsif ($ref eq 'Frontier::RPC2::String') {
+      push @text, "<value><string>", $item->repr, "</string></value>\n";
+    } elsif ($ref eq 'Frontier::RPC2::Integer') {
+      push @text, "<value><int>", $item->repr, "</int></value>\n";
+    } elsif ($ref eq 'Frontier::RPC2::Double') {
+      push @text, "<value><double>", $item->repr, "</double></value>\n";
     } elsif ($ref eq 'Frontier::RPC2::DateTime::ISO8601') {
 	push @text, "<value><dateTime.iso8601>", $item->repr, "</dateTime.iso8601></value>\n";
     } elsif ($ref eq 'Frontier::RPC2::Base64') {
@@ -239,6 +254,24 @@ sub boolean {
     return Frontier::RPC2::Boolean->new(@_);
 }
 
+sub double {
+    my $self = shift;
+
+    return Frontier::RPC2::Double->new(@_);
+}
+
+sub int {
+    my $self = shift;
+
+    return Frontier::RPC2::Integer->new(@_);
+}
+
+sub string {
+    my $self = shift;
+
+    return Frontier::RPC2::String->new(@_);
+}
+
 sub date_time {
     my $self = shift;
 
@@ -306,6 +339,8 @@ sub start {
 	push @{ $self->{'rpc_state'} }, 'want_param_name_or_value';
     } elsif ($state eq 'want_param_name_or_value') {
 	if ($tag eq 'value') {
+	    $self->{'may_get_cdata'} = 1;
+	    $self->{'rpc_text'} = "";
 	    push @{ $self->{'rpc_state'} }, 'value';
 	} elsif ($tag eq 'name') {
 	    push @{ $self->{'rpc_state'} }, 'param_name';
@@ -317,8 +352,11 @@ sub start {
     } elsif ($state eq 'want_value') {
 	Frontier::RPC2::die($self, "wanted \`value' tag, got \`$tag'\n")
 	    if ($tag ne 'value');
+	$self->{'rpc_text'} = "";
+	$self->{'may_get_cdata'} = 1;
 	push @{ $self->{'rpc_state'} }, 'value';
     } elsif ($state eq 'value') {
+	$self->{'may_get_cdata'} = 0;
 	if ($tag eq 'array') {
 	    push @{ $self->{'rpc_container'} }, [];
 	    push @{ $self->{'rpc_state'} }, 'want_data';
@@ -339,6 +377,8 @@ sub start {
     } elsif ($state eq 'array') {
 	Frontier::RPC2::die($self, "wanted \`value' tag, got \`$tag'\n")
 	    if ($tag ne 'value');
+	$self->{'rpc_text'} = "";
+	$self->{'may_get_cdata'} = 1;
 	push @{ $self->{'rpc_state'} }, 'value';
     } elsif ($state eq 'struct') {
 	Frontier::RPC2::die($self, "wanted \`member' tag, got \`$tag'\n")
@@ -371,6 +411,14 @@ sub end {
 	    $value = Frontier::RPC2::Boolean->new($value);
 	} elsif ($tag eq 'dateTime.iso8601') {
 	    $value = Frontier::RPC2::DateTime::ISO8601->new($value);
+	} elsif ($self->{'use_objects'}) {
+	    if ($tag eq 'i4') {
+		$value = Frontier::RPC2::Integer->new($value);
+	    } elsif ($tag eq 'float') {
+		$value = Frontier::RPC2::Float->new($value);
+	    } elsif ($tag eq 'string') {
+		$value = Frontier::RPC2::String->new($value);
+	    }
 	}
 	$self->{'rpc_value'} = $value;
     } elsif ($state eq 'member_name') {
@@ -385,6 +433,16 @@ sub end {
     } elsif ($state eq 'array') {
 	$self->{'rpc_value'} = pop @{ $self->{'rpc_container'} };
     } elsif ($state eq 'value') {
+	# the rpc_text is a string if no type tags were given
+	if ($self->{'may_get_cdata'}) {
+	    $self->{'may_get_cdata'} = 0;
+	    if ($self->{'use_objects'}) {
+		$self->{'rpc_value'}
+		= Frontier::RPC2::String->new($self->{'rpc_text'});
+	    } else {
+		$self->{'rpc_value'} = $self->{'rpc_text'};
+	    }
+	}
 	my $container = $self->{'rpc_container'}[-1];
 	if (ref($container) eq 'ARRAY') {
 	    push @$container, $self->{'rpc_value'};
@@ -447,6 +505,21 @@ package Frontier::RPC2::Boolean;
 use vars qw{@ISA};
 @ISA = qw{Frontier::RPC2::DataType};
 
+package Frontier::RPC2::Integer;
+
+use vars qw{@ISA};
+@ISA = qw{Frontier::RPC2::DataType};
+
+package Frontier::RPC2::String;
+
+use vars qw{@ISA};
+@ISA = qw{Frontier::RPC2::DataType};
+
+package Frontier::RPC2::Double;
+
+use vars qw{@ISA};
+@ISA = qw{Frontier::RPC2::DataType};
+
 package Frontier::RPC2::DateTime::ISO8601;
 
 use vars qw{@ISA};
@@ -473,6 +546,9 @@ Frontier::RPC2 - encode/decode RPC2 format XML
  $boolean_object = $coder->boolean($boolean);
  $date_time_object = $coder->date_time($date_time);
  $base64_object = $coder->base64($base64);
+ $int_object = $coder->int(42);
+ $float_object = $coder->float(3.14159);
+ $string_object = $coder->string("Foo");
 
 =head1 DESCRIPTION
 
@@ -480,9 +556,29 @@ I<Frontier::RPC2> encodes and decodes XML RPC calls.
 
 =over 4
 
-=item $coder = Frontier::RPC2->new()
+=item $coder = Frontier::RPC2->new( I<OPTIONS> )
 
-Create a new encoder/decoder.
+Create a new encoder/decoder.  The following option is supported:
+
+=over 4
+
+=item encoding
+
+The XML encoding to be specified in the XML declaration of encoded RPC
+requests or responses.  Decoded results may have a different encoding
+specified; XML::Parser will convert decoded data to UTF-8.  The
+default encoding is none, which uses XML 1.0's default of UTF-8.  For
+example:
+
+ $server = Frontier::RPC2->new( 'encoding' => 'ISO-8859-1' );
+
+=item use_objects
+
+If set to a non-zero value will convert incoming E<lt>i4E<gt>,
+E<lt>floatE<gt>, and E<lt>stringE<gt> values to objects instead of
+scalars.  See int(), float(), and string() below for more details.
+
+=back
 
 =item $xml_string = $coder->encode_call($method, @args)
 
@@ -521,7 +617,9 @@ in the `C<$methods>' hash and calls it, and then encodes and returns
 the response as XML.
 
 =item $boolean_object = $coder->boolean($boolean);
+
 =item $date_time_object = $coder->date_time($date_time);
+
 =item $base64_object = $coder->base64($base64);
 
 These methods create and return XML-RPC-specific datatypes that can be
@@ -531,10 +629,31 @@ are `C<Frontier::RPC2::Boolean>',
 `C<Frontier::RPC2::DateTime::ISO8601>', and
 `C<Frontier::RPC2::Base64>'.
 
-You can retrieve the value of boolean, date/time, and base64 data
-using the `C<value>' method of those objects, i.e.:
+You can change and retrieve the value of boolean, date/time, and
+base64 data using the `C<value>' method of those objects, i.e.:
 
   $boolean = $boolean_object->value;
+
+  $boolean_object->value(1);
+
+=item $int_object = $coder->int(42);
+
+=item $float_object = $coder->float(3.14159);
+
+=item $string_object = $coder->string("Foo");
+
+By default, you may pass ordinary Perl values (scalars) to be encoded.
+RPC2 automatically converts them to XML-RPC types if they look like an
+integer, float, or as a string.  This assumption causes problems when
+you want to pass a string that looks like "0096", RPC2 will convert
+that to an E<lt>i4E<gt> because it looks like an integer.  With these
+methods, you could now create a string object like this:
+
+  $part_num = $coder->string("0096");
+
+and be confident that it will be passed as an XML-RPC string.  You can
+change and retrieve values from objects using value() as described
+above.
 
 =back
 

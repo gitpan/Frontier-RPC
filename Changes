@@ -2,6 +2,36 @@ Revision history for Perl extension Frontier::RPC.
 
 `*' indicates backward incompatible changes
 
+0.06  Sat Nov 20 17:09:40 CST 1999
+	- Nick Bauman <nixnixnix@yahoo.com> sent in a patch to add
+	  Integer, Float, and String objects to avoid implicit
+	  conversion errors.
+	- add encoding options to Frontier::Client and Frontier::RPC2;
+	  suggested by Skip Montanaro <skip@mojam.com>
+	- "Jon Frisby" <jfrisby@everyone.net> sent in a patch to add a
+	  proxy option to Frontier::Client
+	- add debug option to Frontier::Client
+	- support new options in rpc-client.pl example
+	- support key, value pairs or hashes for options
+	- add example script for using XML-RPC over pipes and as a
+	  CGI; CGI changes were provided by Jon Frisby
+	  <jfrisby@everyone.net>
+	- fixes
+	  - values without types are now parsed properly, reported by
+	    Sean Brown <sean@westcar.com>
+	  - corrupted results when untyped values appear in <struct>s;
+	    reported by Bas A. Schulte <bas@yournews.nl>
+	  - Frontier::RPC2: fix uninitialized use of `encoding_';
+	    also reported by Bas A. Schulte <bas@yournews.nl>
+
+	Note: the error:
+
+	  Modification of a read-only value attempted at
+	  /usr/lib/perl5/site_perl/XML/Parser/Expat.pm line 126.
+
+	was a bug in the XML::Parser module that is fixed in the
+	latest version of XML::Parser.
+
 0.05  Tue Apr 13 14:58:00 CDT 1999
 	- add a prerequisit for XML::Parser in Makefile.PL
 	- fixes

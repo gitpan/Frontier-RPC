@@ -1,8 +1,8 @@
 Summary: Perl module for RPC over XML
 Name: Frontier-RPC
-Version: 0.05
+Version: 0.06
 Release: 1
-Source: ftp://ftp.uu.net/vendor/bitsko/gdo/Frontier-RPC-0.05.tar.gz
+Source: ftp://ftp.uu.net/vendor/bitsko/gdo/Frontier-RPC-0.06.tar.gz
 Copyright: distributable
 Group: Networking/Utilities
 URL: http://www.bitsko.slc.ut.us/
@@ -32,7 +32,7 @@ make
 
 make PREFIX="${RPM_ROOT_DIR}/usr" pure_install
 
-DOCDIR="${RPM_ROOT_DIR}/usr/doc/Frontier-RPC-0.05-1"
+DOCDIR="${RPM_ROOT_DIR}/usr/doc/Frontier-RPC-0.06-1"
 mkdir -p "$DOCDIR/examples"
 for ii in README COPYING Changes test.pl examples/*; do
   cp $ii "$DOCDIR/$ii"
@@ -41,7 +41,7 @@ done
 
 %files
 
-/usr/doc/Frontier-RPC-0.05-1
+/usr/doc/Frontier-RPC-0.06-1
 
 /usr/lib/perl5/Frontier/Client.pm
 /usr/lib/perl5/Frontier/Daemon.pm
