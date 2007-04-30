@@ -14,6 +14,7 @@ package Frontier::Client;
 use Frontier::RPC2;
 use LWP::UserAgent;
 use HTTP::Request;
+use MIME::Base64;
 
 use vars qw{$AUTOLOAD};
 
@@ -31,6 +32,10 @@ sub new {
 	if(defined $self->{'proxy'});
     $self->{'rq'} = HTTP::Request->new (POST => $self->{'url'});
     $self->{'rq'}->header('Content-Type' => 'text/xml');
+    # Patch to enable basic authentication:
+    $self->{'rq'}->header('Authorization' => 'Basic '.
+	    	encode_base64($self->{'username'}.':'.$self->{'password'}))
+	if(defined $self->{'username'} and defined $self->{'password'});
 
     my @options;
 
@@ -208,6 +213,15 @@ If set to a non-zero value will convert incoming E<lt>i4E<gt>,
 E<lt>floatE<gt>, and E<lt>stringE<gt> values to objects instead of
 scalars.  See int(), float(), and string() below for more details.
 
+=item username
+
+Sets the username for basic authentication. If this is not set, basic
+authentication will be disabled.
+
+=item password
+
+Sets the password for basic authentication.
+
 =item debug
 
 If set to a non-zero value will print the encoded XML request and the
@@ -279,6 +293,7 @@ perl(1), Frontier::RPC2(3)
 =head1 AUTHOR
 
 Ken MacLeod <ken@bitsko.slc.ut.us>
+Basic authentication patch by Jeff <jeff@freemedsoftware.org>
 
 =cut
 
